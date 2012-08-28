@@ -1,0 +1,67 @@
+The Aim of this tool is to print the session time and session bytes along with the IAT of the packets within a session on the basis of threshold IAT time.
+
+Session: Packets are said to belong to a session where the Inter Arrival time of the continuous packets ( Packets read sequentially) in a session is less than threshold IAT time ( given by option -r) 
+
+This is installed in in XPS as solary
+
+
+Example
+
+ solary vamsi.cap -r 1 -q link
+
+here the trace file considered is vamsi.cap , threshold IAT is 1 second, and the packet size considered is in link layer.
+
+Sample output:
+
+0.126928000000  0.126928000000  0.999986000000  0.873058000000  1.227592000000  0.227606000000  1.276873000000  0.049281000000  1.278138000000  0.001265000000  1.425199000000  0.147061000000  1.999931000000  0.574732000000  2.126922000000  0.126991000000  SESSIONPACKETS:9:SESSIONBYTES:1032:SESSIONTIME:2.126922000000
+
+[Time since the arrival of packet in a session] [ IAT of the packet] [Time since the arrival of packet in a session] [ IAT of the packet] .... [SESSIONPACKETS:(Num of packets in session):SESSIONBYTES:(Number of bytes in a session):SESSIONTIME:(duration of the session)]
+
+The meaning of the above example is, the second packet in the session arrived at t = 0.126928000000 with an IAT of 0.126928000000, while the third packet in the session arrived at t = 0.999986000000 at an IAT of  0.873058000000.. We then print the session packets, session bytes and session time. the next packet is spaced by an IAT greater than the threshold IAT specified.
+
+
+C) 2012 Patrik Arlos <patrik.arlos@bth.se>
+(C) 2012 David Sveningsson <david.sveningsson@bth.se>
+(C) 2012 Vamsi Krishna Konakalla <vamsi.krishna.konakalla@bth.se>
+Usage: solary [OPTIONS] STREAM
+  -c, --content        Write full package content as hexdump. [default=no]
+  -i, --iface          For ethernet-based streams, this is the interface to listen
+                       on. For other streams it is ignored.
+  -p, --packets=N      Stop after N packets.
+  -t, --timeout=N      Wait for N ms while buffer fills [default: 1000ms].
+  -d, --calender       Show timestamps in human-readable format.
+  -q, --level                   Level to calculate bitrate {physical (default), link, network, transport and application}
+                         At level N , payload of particular layer is only considered, use filters to select particular streams.
+                         To calculate the bitrate at physical , use physical layer, Consider for Network layer use [-q network]
+                         It shall contain transport protocol header + payload
+                           - link: all bits captured at physical level, i.e link + network + transport + application
+                           - network: payload field at link layer , network + transport + application
+                           - transport: payload at network  layer, transport + application
+                           - application: The payload field at transport leve , ie.application
+                         Default is link
+ -r ( Threshold Inter Arrival Time ( IAT)) specify the threshold IAT consider a new session 
+  -h, --help           This text.
+
+libcap_filter-0.7.6 options
+      --starttime=DATETIME    Discard all packages before starttime described by
+                              the unix timestamp. See capfilter(1) for
+                              additional accepted formats.
+      --endtime=DATETIME      Discard all packets after endtime.
+      --begin                 Alias for --starttime
+      --end                   Alias for --endtime
+      --mampid=STRING         Filter on MAMPid
+      --mpid=STRING           Alias for --mampid
+      --iface=STRING          Filter on networkinterface on MP
+      --if=STRING             Alias for --iface
+      --eth.vlan=TCI[/MASK]   Filter on VLAN TCI and mask
+      --eth.type=STRING[/MASK]Filter on carrier protocol (ip, arp,rarp)
+      --eth.src=ADDR[/MASK]   Filter on ethernet source
+      --eth.dst=ADDR[/MASK]   Filter on ethernet destination
+      --ip.proto=STRING       Filter on ip protocol (tcp, udp, icmp,)
+      --ip.src=ADDR[/MASK]    Filter on source ip address, dotted decimal
+      --ip.dst=ADDR[/MASK]    Filter on destination ip address, dotted decimal
+      --tp.sport=PORT[/MASK]  Filter on source portnumber
+      --tp.dport=PORT[/MASK]  Filter on destination portnumber
+      --tp.port=PORT[/MASK]   Filter or source or destination portnumber (if                              either is a match the packet matches
+      --caplen=BYTES          Store BYTES of the captured packet. [default=ALL]
+
