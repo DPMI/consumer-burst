@@ -75,6 +75,9 @@ static struct option long_options[]= {
   {"iface",    required_argument, 0, 'i'},
   {"timeout",  required_argument, 0, 't'},
   {"calender", no_argument,       0, 'd'},
+   {"graph", no_argument,       0, 'g'},
+   {"singlepacket", no_argument,       0, 's'},
+   {"relativetime", no_argument,       0, 'b'},
   {"help",     no_argument,       0, 'h'},
   {"level",     required_argument,       0, 'q'},
   {"linkCapacity",     required_argument, 0, 'l'},
@@ -89,6 +92,7 @@ static void show_usage(void){
   printf("(C) 2012 Vamsi Krishna Konakalla <vamsi.krishna.konakalla@bth.se>\n");
   printf("Usage: %s [OPTIONS] STREAM\n", program_name);
   printf("  -c, --content        Write full package content as hexdump. [default=no]\n"
+	
 	 "  -i, --iface          For ethernet-based streams, this is the interface to listen\n"
 	 "                       on. For other streams it is ignored.\n"
 	 "  -p, --packets=N      Stop after N packets.\n"
@@ -104,6 +108,9 @@ static void show_usage(void){
 	 "                           - application: The payload field at transport leve , ie.application\n"
 	 "                         Default is link\n"
 	 "  -l, --linkCapacity          Link capacity in bits per second default 10 Mbps, (eg.input 10e6) \n"
+	  "  -g, --graph          print values as tab seperated for importing data\n"
+	  "  -s, --singlepacket   It includes single packet as separate burst if the packet is time separated by the given threshold\n"
+	  "  -b, --relativetime   Print start and stop time using relative time\n"
 	 " -r ( Threshold Inter Arrival Time ( IAT)) specify the threshold IAT consider a new session \n"
 	 "  -h, --help           This text.\n\n");
   filter_from_argv_usage();
@@ -186,9 +193,15 @@ int main(int argc, char **argv){
   /* extract program name from path. e.g. /path/to/MArCd -> MArCd */
   int level;	
   int payLoadSize, payLoadSizeLink;
+  int singlepacket = 2;
   qd_real session_time;
   qd_real transfer_time, temp_transfer_time;
   double linkCapacity = 10e6;
+  int graph = 0;
+  int rel = 0;
+  long packetcounter = 0;
+  qd_real ref_time ;
+  long burstcounter = 0;
   const char* separator = strrchr(argv[0], '/');
   if ( separator ){
     program_name = separator + 1;
@@ -204,7 +217,7 @@ int main(int argc, char **argv){
   filter_print(&filter, stderr, 0);
 
   int op, option_index = -1;
-  while ( (op = getopt_long(argc, argv, "hcdi:p:t:q:l:r:", long_options, &option_index)) != -1 ){
+  while ( (op = getopt_long(argc, argv, "hcgsbdi:p:t:q:l:r:", long_options, &option_index)) != -1 ){
     switch (op){
     case 0:   /* long opt */
     case '?': /* unknown opt */
@@ -214,6 +227,17 @@ int main(int argc, char **argv){
       print_date = 1;
       break;
 
+    case 'g':
+      graph = 1;
+      break;
+     
+    case 's':
+      singlepacket = 1;
+      break; 
+
+     case 'b':
+      rel = 1;
+      break;
     case 'p':
       max_packets = atoi(optarg);
       break;
@@ -300,29 +324,51 @@ int main(int argc, char **argv){
     if (payLoadSize == 0) {
       continue;
     }
-		
+    packetcounter = packetcounter +1 ;		
     sample_count++;
     if (sample_count == 1) {
       pkt1=(qd_real)(double)cp->ts.tv_sec+(qd_real)(double)(cp->ts.tv_psec/PICODIVIDER);
       pkt1 = pkt1 + temp_transfer_time; // adding correction to desired layer
       start_time = pkt1;
+      if ((packetcounter == 1)&& (rel == 1)) {
+	ref_time = pkt1;
+	pkt1 = pkt1 - ref_time;
+	start_time = pkt1 ;
+      }
     }
     pkt2=(qd_real)(double)cp->ts.tv_sec+(qd_real)(double)(cp->ts.tv_psec/PICODIVIDER);
     pkt2 = pkt2 + temp_transfer_time; // adding correction to desired layer
+    if (rel == 1) {
+    pkt2 = pkt2 -ref_time ;
+    }
     diffTime = pkt2 - pkt1;	
     // cout<< "PacketSTARTTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt2)<<"--";
     //cout<< "DIFFTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(diffTime)<<"--";
     //cout<< "temptransferTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(temp_transfer_time)<<"--";
     //cout<< "transferTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(transfer_time)<<endl;
-    if ((diffTime > sample_time) && (sample_count > 2)) {
+    if ((diffTime > sample_time) && (sample_count > singlepacket)) {
+      burstcounter = burstcounter + 1;
+       session_time = pkt1 - start_time;
+       if (graph == 0) {
       cout<< "SESSIONSTARTTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<":";
       cout<< "SESSIONENDTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt1)<<":";	
       cout <<"SESSIONPACKETS:"<<(sample_count -1) <<":";
       cout <<"SESSIONBYTES:";
-      cout <<sample_bytes<<":";
-      sample_bytes =0;
-      session_time = pkt1 - start_time;
+      cout <<sample_bytes<<":";     
       cout << setiosflags(ios::fixed) << setprecision(12)<<"SESSIONTIME:"<<to_double(session_time) << endl;
+       }
+       else {
+	 if (burstcounter == 1) {
+	   cout <<"SESSIONSTART\tSESSIONEND\tPACKETCOUNT\tBYTECOUNT\tSESSIONDURATION(s)\n";
+	 }
+	 cout<<setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<"\t";
+      cout<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt1)<<"\t";	
+      cout <<(sample_count -1) <<"\t";
+     
+      cout <<sample_bytes<<"\t";     
+      cout << setiosflags(ios::fixed) << setprecision(12)<<to_double(session_time) << endl; 
+       }
+       sample_bytes =0;
       start_time = pkt2;
       sample_count = 1;
       diffTime = diffTime - diffTime;
