@@ -7,7 +7,7 @@ This is installed in in XPS as solary
 
 Example
 
- solary vamsi.cap -r 1 -q link
+ solary vamsi.cap -r 1 -q link -l 10e6
 
 here the trace file considered is vamsi.cap , threshold IAT is 1 second, and the packet size considered is in link layer.
 
