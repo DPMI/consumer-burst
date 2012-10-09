@@ -78,6 +78,7 @@ static struct option long_options[]= {
    {"graph", no_argument,       0, 'g'},
    {"singlepacket", no_argument,       0, 's'},
    {"relativetime", no_argument,       0, 'b'},
+   {"noheader", no_argument,       0, 'n'},
   {"help",     no_argument,       0, 'h'},
   {"level",     required_argument,       0, 'q'},
   {"linkCapacity",     required_argument, 0, 'l'},
@@ -109,6 +110,7 @@ static void show_usage(void){
 	 "                         Default is link\n"
 	 "  -l, --linkCapacity          Link capacity in bits per second default 10 Mbps, (eg.input 10e6) \n"
 	  "  -g, --graph          print values as tab seperated for importing data\n"
+	   "  -n, --noheader          print values as tab seperated values without header for importing data\n"
 	  "  -s, --singlepacket   It includes single packet as separate burst if the packet is time separated by the given threshold\n"
 	  "  -b, --relativetime   Print start and stop time using relative time\n"
 	 " -r ( Threshold Inter Arrival Time ( IAT)) specify the threshold IAT consider a new session \n"
@@ -202,6 +204,7 @@ int main(int argc, char **argv){
   long packetcounter = 0;
   qd_real ref_time ;
   long burstcounter = 0;
+  int noheader = 0;
   const char* separator = strrchr(argv[0], '/');
   if ( separator ){
     program_name = separator + 1;
@@ -217,7 +220,7 @@ int main(int argc, char **argv){
   filter_print(&filter, stderr, 0);
 
   int op, option_index = -1;
-  while ( (op = getopt_long(argc, argv, "hcgsbdi:p:t:q:l:r:", long_options, &option_index)) != -1 ){
+  while ( (op = getopt_long(argc, argv, "hcgsbndi:p:t:q:l:r:", long_options, &option_index)) != -1 ){
     switch (op){
     case 0:   /* long opt */
     case '?': /* unknown opt */
@@ -230,6 +233,10 @@ int main(int argc, char **argv){
     case 'g':
       graph = 1;
       break;
+
+    case 'n':
+      noheader = 1;
+      break;
      
     case 's':
       singlepacket = 1;
@@ -238,6 +245,7 @@ int main(int argc, char **argv){
      case 'b':
       rel = 1;
       break;
+
     case 'p':
       max_packets = atoi(optarg);
       break;
@@ -313,6 +321,33 @@ int main(int argc, char **argv){
     if ( ret == EAGAIN ){
       continue; /* timeout */
     } else if ( ret != 0 ){
+      //cout <<"hello\n";
+      // print accumulators
+      burstcounter = burstcounter + 1;
+       session_time = pkt1 - start_time;
+       if (graph == 0) {
+      cout<< "SESSIONSTARTTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<":";
+      cout<< "SESSIONENDTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt1)<<":";	
+      cout <<"SESSIONPACKETS:"<<(sample_count -1) <<":";
+      cout <<"SESSIONBYTES:";
+      cout <<sample_bytes<<":";     
+      cout << setiosflags(ios::fixed) << setprecision(12)<<"SESSIONTIME:"<<to_double(session_time) << endl;
+       }
+       else {
+	 if ((burstcounter == 1)&& (noheader == 0)) {
+	   cout <<"SESSIONSTART\tSESSIONEND\tPACKETCOUNT\tBYTECOUNT\tSESSIONDURATION(s)\n";
+	 }
+	 cout<<setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<"\t";
+      cout<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt1)<<"\t";	
+      cout <<(sample_count -1) <<"\t";
+     
+      cout <<sample_bytes<<"\t";     
+      cout << setiosflags(ios::fixed) << setprecision(12)<<to_double(session_time) << endl; 
+       }
+       sample_bytes =0;
+      start_time = pkt2;
+      sample_count = 1;
+      diffTime = diffTime - diffTime; 
       break; /* shutdown or error */
     } 
     count++;
@@ -358,7 +393,7 @@ int main(int argc, char **argv){
       cout << setiosflags(ios::fixed) << setprecision(12)<<"SESSIONTIME:"<<to_double(session_time) << endl;
        }
        else {
-	 if (burstcounter == 1) {
+	 if ((burstcounter == 1)&& (noheader == 0)) {
 	   cout <<"SESSIONSTART\tSESSIONEND\tPACKETCOUNT\tBYTECOUNT\tSESSIONDURATION(s)\n";
 	 }
 	 cout<<setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<"\t";
