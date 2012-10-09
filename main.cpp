@@ -328,7 +328,7 @@ int main(int argc, char **argv){
        if (graph == 0) {
       cout<< "SESSIONSTARTTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<":";
       cout<< "SESSIONENDTIME:"<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt1)<<":";	
-      cout <<"SESSIONPACKETS:"<<(sample_count -1) <<":";
+      cout <<"SESSIONPACKETS:"<<(sample_count) <<":";
       cout <<"SESSIONBYTES:";
       cout <<sample_bytes<<":";     
       cout << setiosflags(ios::fixed) << setprecision(12)<<"SESSIONTIME:"<<to_double(session_time) << endl;
@@ -339,7 +339,7 @@ int main(int argc, char **argv){
 	 }
 	 cout<<setiosflags(ios::fixed) << setprecision(12)<<to_double(start_time)<<"\t";
       cout<< setiosflags(ios::fixed) << setprecision(12)<<to_double(pkt1)<<"\t";	
-      cout <<(sample_count -1) <<"\t";
+      cout <<(sample_count) <<"\t";
      
       cout <<sample_bytes<<"\t";     
       cout << setiosflags(ios::fixed) << setprecision(12)<<to_double(session_time) << endl; 
